@@ -1,27 +1,35 @@
 import json
 import os
 
-data_file = "library.txt"
+DATA_FILE = "library.txt"
 
 
 def load_library():
-    if os.path.exists(data_file):
-        with open(data_file, "r") as file:
-            return json.load(file)
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r") as file:
+                return json.load(file)
+        except json.JSONDecodeError:
+            print(f"Error: {DATA_FILE} is corrupted. Starting with an empty library.")
+        except Exception as e:
+            print(f"An unexpected error occurred while loading the library: {e}")
     return []
 
 
 def save_library(library):
-    with open(data_file, "w") as file:
-        json.dump(library, file, indent=4)
+    try:
+        with open(DATA_FILE, "w") as file:
+            json.dump(library, file, indent=4)
+    except Exception as e:
+        print(f"An error occurred while saving the library: {e}")
 
 
 def add_book(library):
-    title = input("Enter the book title: ")
-    author = input("Enter the author: ")
-    publication_year = input("Enter the publication year: ")
-    genre = input("Enter the genre: ")
-    read_status = input("Have you read this book? (yes/no): ").lower() == "yes"
+    title = input("Enter the book title: ").strip()
+    author = input("Enter the author: ").strip()
+    publication_year = input("Enter the publication year: ").strip()
+    genre = input("Enter the genre: ").strip()
+    read_status = input("Have you read this book? (yes/no): ").strip().lower() == "yes"
     new_book = {
         "title": title,
         "author": author,
@@ -35,9 +43,11 @@ def add_book(library):
 
 
 def remove_book(library):
-    title = input("Enter the title of the book to remove: ").lower()
+    title = input("Enter the title of the book to remove: ").strip().lower()
     initial_length = len(library)
-    library = [book for book in library if book["title"].lower() != title]
+    library[:] = [
+        book for book in library if book.get("title", "").strip().lower() != title
+    ]
     if len(library) < initial_length:
         save_library(library)
         print(f"Book '{title}' removed successfully!")
@@ -46,17 +56,20 @@ def remove_book(library):
 
 
 def search_library(library):
-    search_by = input("Search by (title/author): ").lower()
+    search_by = input("Search by (title/author): ").strip().lower()
     if search_by not in ["title", "author"]:
         print("Invalid search criteria. Please choose 'title' or 'author'.")
         return
-    search_term = input(f"Enter the {search_by}: ").lower()
-    results = [book for book in library if search_term in book[search_by].lower()]
+    search_term = input(f"Enter the {search_by}: ").strip().lower()
+    results = [
+        book for book in library if search_term in book.get(search_by).strip().lower()
+    ]
     if results:
         for book in results:
             status = "Read" if book.get("read_status") else "Unread"
             print(
-                f"Matching Book: {book.get('title')} by {book.get('author')} - {book.get('publication_year')} - {book.get('genre')} - {status}"
+                f"Matching Book: {book.get('title', 'Unknown')} by {book.get('author', 'Unknown')} - "
+                f"{book.get('publication_year', 'Unknown Year')} - {book.get('genre', 'Unknown Genre')} - {status}"
             )
     else:
         print(f"No matching books found for '{search_term}' in the {search_by} field.")
@@ -67,7 +80,8 @@ def display_all_books(library):
         for book in library:
             status = "Read" if book.get("read_status") else "Unread"
             print(
-                f"{book.get('title')} by {book.get('author')} - {book.get('publication_year')} - {book.get('genre')} - {status}"
+                f"{book.get('title', 'Unknown')} by {book.get('author', 'Unknown')} - "
+                f"{book.get('publication_year', 'Unknown Year')} - {book.get('genre', 'Unknown Genre')} - {status}"
             )
     else:
         print("The library is empty.")
@@ -91,7 +105,7 @@ def main():
         print("4. Display all books")
         print("5. Display statistics")
         print("6. Exit")
-        choice = input("Enter your choice: ")
+        choice = input("Enter your choice: ").strip()
         if choice == "1":
             add_book(library)
         elif choice == "2":
